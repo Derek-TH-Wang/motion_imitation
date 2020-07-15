@@ -32,6 +32,8 @@ OPTIM_BATCHSIZE = 256
 
 ENABLE_ENV_RANDOMIZER = True
 
+ROBOT = "xr3"
+
 def set_rand_seed(seed=None):
   if seed is None:
     seed = int(time.time())
@@ -127,10 +129,14 @@ def test(model, env, num_procs, num_episodes=None):
 
 def main():
   arg_parser = argparse.ArgumentParser()
-  arg_parser.add_argument("--robot", dest="robot", type=str, default="xr3")
+  if ROBOT == "xr3":
+    arg_parser.add_argument("--robot", dest="robot", type=str, default="xr3")
+    arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_trot_xr3.txt")
+  elif ROBOT == "laikago":
+    arg_parser.add_argument("--robot", dest="robot", type=str, default="laikago")
+    arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_trot.txt")
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
   arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
-  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_trot_xr3.txt")
   arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=True)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
   arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)
