@@ -25,9 +25,10 @@ from envs.sensors import sensor_wrappers
 from envs.sensors import robot_sensors
 from envs.utilities import controllable_env_randomizer_from_config
 from robots import laikago
+from robots import xr3
 
 
-def build_imitation_env(motion_files, num_parallel_envs, mode,
+def build_imitation_env(robot, motion_files, num_parallel_envs, mode,
                         enable_randomizer, enable_rendering):
   assert len(motion_files) > 0
 
@@ -39,12 +40,18 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
 
   gym_config = locomotion_gym_config.LocomotionGymConfig(simulation_parameters=sim_params)
 
-  robot_class = laikago.Laikago
+  if robot == "xr3":
+    robot_class = xr3.xr3
+    num_motors = xr3.NUM_MOTORS
+  elif robot == "laikago":
+    robot_class = laikago.Laikago
+    num_motors = laikago.NUM_MOTORS
+  
 
   sensors = [
-      sensor_wrappers.HistoricSensorWrapper(wrapped_sensor=robot_sensors.MotorAngleSensor(num_motors=laikago.NUM_MOTORS), num_history=3),
+      sensor_wrappers.HistoricSensorWrapper(wrapped_sensor=robot_sensors.MotorAngleSensor(num_motors=num_motors), num_history=3),
       sensor_wrappers.HistoricSensorWrapper(wrapped_sensor=robot_sensors.IMUSensor(), num_history=3),
-      sensor_wrappers.HistoricSensorWrapper(wrapped_sensor=environment_sensors.LastActionSensor(num_actions=laikago.NUM_MOTORS), num_history=3)
+      sensor_wrappers.HistoricSensorWrapper(wrapped_sensor=environment_sensors.LastActionSensor(num_actions=num_motors), num_history=3)
   ]
 
   task = imitation_task.ImitationTask(ref_motion_filenames=motion_files,
@@ -62,8 +69,11 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
                                             env_randomizers=randomizers, robot_sensors=sensors, task=task)
 
   env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
-  env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
-                                                                       trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
+  if robot == "xr3":
+    trajectory_generator=simple_openloop.XR3PoseOffsetGenerator(action_limit=xr3.UPPER_BOUND)
+  elif robot == "laikago":
+    trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND)
+  env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env, trajectory_generator)
 
   if mode == "test":
       curriculum_episode_length_start = curriculum_episode_length_end

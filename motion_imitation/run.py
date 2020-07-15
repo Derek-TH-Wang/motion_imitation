@@ -127,10 +127,11 @@ def test(model, env, num_procs, num_episodes=None):
 
 def main():
   arg_parser = argparse.ArgumentParser()
+  arg_parser.add_argument("--robot", dest="robot", type=str, default="xr3")
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
   arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
-  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/laikago_dog_pace.txt")
-  arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=False)
+  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_trot_xr3.txt")
+  arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=True)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
   arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)
   arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
@@ -143,7 +144,8 @@ def main():
   os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
   
   enable_env_rand = ENABLE_ENV_RANDOMIZER and (args.mode != "test")
-  env = env_builder.build_imitation_env(motion_files=[args.motion_file],
+  env = env_builder.build_imitation_env(robot=args.robot,
+                                        motion_files=[args.motion_file],
                                         num_parallel_envs=num_procs,
                                         mode=args.mode,
                                         enable_randomizer=enable_env_rand,

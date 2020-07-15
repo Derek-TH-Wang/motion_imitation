@@ -24,6 +24,7 @@ from gym import spaces
 import numpy as np
 
 from robots import laikago_pose_utils
+from robots import xr3_pose_utils
 from robots import minitaur_pose_utils
 
 class MinitaurPoseOffsetGenerator(object):
@@ -101,6 +102,56 @@ class LaikagoPoseOffsetGenerator(object):
     self._pose = np.array(
         attr.astuple(
             laikago_pose_utils.LaikagoPose(
+                abduction_angle_0=init_abduction,
+                hip_angle_0=init_hip,
+                knee_angle_0=init_knee,
+                abduction_angle_1=init_abduction,
+                hip_angle_1=init_hip,
+                knee_angle_1=init_knee,
+                abduction_angle_2=init_abduction,
+                hip_angle_2=init_hip,
+                knee_angle_2=init_knee,
+                abduction_angle_3=init_abduction,
+                hip_angle_3=init_hip,
+                knee_angle_3=init_knee)))
+    action_high = np.array([action_limit] * 12)
+    self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
+
+  def reset(self):
+    pass
+
+  def get_action(self, current_time=None, input_action=None):
+    """Computes the trajectory according to input time and action.
+
+    Args:
+      current_time: The time in gym env since reset.
+      input_action: A numpy array. The input leg pose from a NN controller.
+
+    Returns:
+      A numpy array. The desired motor angles.
+    """
+    del current_time
+    return self._pose + input_action
+
+  def get_observation(self, input_observation):
+    """Get the trajectory generator's observation."""
+
+    return input_observation
+
+class XR3PoseOffsetGenerator(object):
+  """A trajectory generator that return constant motor angles."""
+
+  def __init__(
+      self,
+      init_abduction=xr3_pose_utils.XR3_DEFAULT_ABDUCTION_ANGLE,
+      init_hip=xr3_pose_utils.XR3_DEFAULT_HIP_ANGLE,
+      init_knee=xr3_pose_utils.XR3_DEFAULT_KNEE_ANGLE,
+      action_limit=0.5,
+      ):
+    """Initializes the controller."""
+    self._pose = np.array(
+        attr.astuple(
+            xr3_pose_utils.XR3Pose(
                 abduction_angle_0=init_abduction,
                 hip_angle_0=init_hip,
                 knee_angle_0=init_knee,
