@@ -758,6 +758,7 @@ class ImitationTask(object):
     pyb.resetBaseVelocity(phys_model, root_vel, root_ang_vel)
 
     num_joints = self._get_num_joints()
+    # p = []
     for j in range(num_joints):
       q_idx = self._get_joint_pose_idx(j)
       q_size = self._get_joint_pose_size(j)
@@ -771,7 +772,18 @@ class ImitationTask(object):
         j_pose = pose[q_idx:(q_idx + q_size)]
         j_vel = vel[dq_idx:(dq_idx + dq_size)]
         pyb.resetJointStateMultiDof(phys_model, j, j_pose, j_vel)
-
+        # p.extend(j_pose.tolist())
+      # if j==3:
+      #   # derek to do:
+      #   if phys_model == 2:
+      #     foot_pos = [0]*3
+      #     state = pyb.getLinkState(phys_model, j)
+      #     base_pos = pyb.getBasePositionAndOrientation(self._env.robot.quadruped)[0]
+      #     foot_pos[0] = state[0][0] - base_pos[0]
+      #     foot_pos[1] = state[0][1] - base_pos[1]
+      #     foot_pos[2] = state[0][2] - base_pos[2]
+      #     print(foot_pos)
+    # print(p)
     return
 
   def _get_pybullet_client(self):
