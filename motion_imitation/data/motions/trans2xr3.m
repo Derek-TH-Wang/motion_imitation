@@ -9,7 +9,7 @@ function trans2xr3(dogtrot)
     for ii=1:length(dogtrot(:,1))
         for jj = 1:4
             angle = laikagoJoint(ii,(jj-1)*3+1:jj*3) + offsetAngle;
-            angle = angle.*laikago2KinematicsOffset(jj:jj+2);
+            angle = angle.*laikago2KinematicsOffset((jj-1)*3+1:jj*3);
             if jj == 2 || jj == 4
                 pos(ii,(jj-1)*3+1:jj*3) = FK(angle, coxa1 , femur1 , tibia1, 1);
             else
@@ -17,8 +17,8 @@ function trans2xr3(dogtrot)
             end
         end
     end
-%     plot3(pos(:,1),pos(:,2),pos(:,3))
-%     hold on
+    plot3(pos(:,1),pos(:,2),pos(:,3),'-o')
+    hold on
 %     plot3(pos(:,4),pos(:,5),pos(:,6))
 %     plot3(pos(:,7),pos(:,8),pos(:,9))
 %     plot3(pos(:,10),pos(:,11),pos(:,12))
@@ -54,39 +54,45 @@ function trans2xr3(dogtrot)
         for jj = 1:4
             if jj == 2 || jj == 4
                 joint(ii,(jj-1)*3+1:jj*3) = IK(pos(ii,(jj-1)*3+1:jj*3), coxa2, femur2, tibia2, 1);
+                p = FK(joint(ii,(jj-1)*3+1:jj*3), coxa2 , femur2 , tibia2, 1);
             else
                 joint(ii,(jj-1)*3+1:jj*3) = IK(pos(ii,(jj-1)*3+1:jj*3), coxa2, femur2, tibia2, -1);
+                p = FK(joint(ii,(jj-1)*3+1:jj*3), coxa2 , femur2 , tibia2, -1);
+            end
+            if max(p-pos(ii,(jj-1)*3+1:jj*3)) > 0.0001
+                disp("err p")
+                disp(pos(ii,(jj-1)*3+1:jj*3))
+                disp((p-pos(ii,(jj-1)*3+1:jj*3)))
             end
         end
         joint(ii,:) = joint(ii,:) .* kinematics2Mini;
     end
     dogtrot1(:,8:19) = joint;
-%     dogtrot1(:,[8,9,10,12,13,14,15,16,18,19]) = -dogtrot1(:,[8,9,10,12,13,14,15,16,18,19]);
-%     dogtrot1(:,[9,12,15,18])=dogtrot1(:,[9,12,15,18])-0.6;
-%     dogtrot1(:,[10,13,16,19])=dogtrot1(:,[10,13,16,19])+0.66;
-%     dogtrot1(:,3) = dogtrot1(:,3) - 0.13;
-%     joint = dogtrot1(:,8:length(dogtrot1(1,:)));
     
     
-%     cnt = 0;
-%     for ii=1:length(dogtrot1(:,1))
-%         for jj = 1:4
-%             cnt = cnt+1;
-%             angle = joint(ii,(jj-1)*3+1:jj*3);
-%             pos_l = FK(angle, coxa , femur , tibia, 1);
-%             pos_r = FK(angle, coxa , femur , tibia, -1);
-%             ang_l = IK(pos_l, coxa, femur, tibia, -1);
-%             ang_r = IK(pos_r, coxa, femur, tibia, 1);
-%             if max((ang_l-angle)) > 0.0001 || max((ang_r-angle)) > 0.0001
-%                 print(angle)
-%                 print((ang_l-angle))
-%                 print((ang_r-angle))
-%             end
-%             disp(cnt)
-%         end
-%     end
-
-    
+    for ii=1:length(dogtrot1(:,1))
+        for jj = 1:4
+            angle = joint(ii,(jj-1)*3+1:jj*3);
+            angle = angle.*kinematics2Mini((jj-1)*3+1:jj*3);
+            if jj == 2 || jj == 4
+                pos1(ii,(jj-1)*3+1:jj*3) = FK(angle, coxa2 , femur2 , tibia2, 1);
+                ang = IK(pos1(ii,(jj-1)*3+1:jj*3), coxa2, femur2, tibia2, 1);
+            else
+                pos1(ii,(jj-1)*3+1:jj*3) = FK(angle, coxa2 , femur2 , tibia2, -1);
+                ang = IK(pos1(ii,(jj-1)*3+1:jj*3), coxa2, femur2, tibia2, -1);
+            end
+            if max(ang-angle) > 0.0001 || max(ang-angle) > 0.0001
+                disp("err angle")
+                disp(angle)
+                disp((ang-angle))
+                disp((ang-angle))
+            end
+        end
+    end
+    plot3(pos(1:25,1),pos(1:25,2),pos(1:25,3),'-o')
+    hold on
+    plot3(pos1(1:25,1),pos1(1:25,2),pos1(1:25,3),'-o')
+    axis equal
     
     
     for ii = 1:length(pos(:,1))
@@ -151,7 +157,7 @@ function p = FK(angle, coxa , femur , tibia, left_right)
     p0 = tibia * s23 + femur * s2;
     p1 = coxa * (sideSign) * c1 + tibia * (s1 * c23) + femur * c2 * s1;
     p2 = coxa * (sideSign) * s1 - tibia * (c1 * c23) - femur * c1 * c2;
-    p = [p0, p1, p2];
+    p = [-p0, p1, p2];
 end
 
 
