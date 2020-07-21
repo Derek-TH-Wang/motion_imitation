@@ -21,7 +21,7 @@ import numpy as np
 import pybullet as pyb
 
 from robots import laikago_pose_utils
-from robots import laikago_constants
+# from robots import laikago_constants
 from robots import laikago_motor
 from robots import minitaur
 from robots import robot_config
