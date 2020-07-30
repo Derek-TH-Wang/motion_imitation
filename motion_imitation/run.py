@@ -104,13 +104,14 @@ def test(model, env, num_procs, num_episodes=None):
     num_local_episodes = int(np.ceil(float(num_episodes) / num_procs))
   else:
     num_local_episodes = np.inf
-
+  # s = time.time()
   o = env.reset()
   while episode_count < num_local_episodes:
     a, _ = model.predict(o, deterministic=True)
     o, r, done, info = env.step(a)
     curr_return += r
-
+    # print(time.time()-s)
+    # s = time.time()
     if done:
         o = env.reset()
         sum_return += curr_return
@@ -132,15 +133,17 @@ def main():
   if ROBOT == "xr3":
     arg_parser.add_argument("--robot", dest="robot", type=str, default="xr3")
     arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_trot_xr3.txt")
+    arg_parser.add_argument("--model_file", dest="model_file", type=str, default="motion_imitation/data/policies/xr3_trot.zip")
+    # arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
   elif ROBOT == "laikago":
     arg_parser.add_argument("--robot", dest="robot", type=str, default="laikago")
     arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_trot.txt")
+    arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
   arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
   arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=True)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
   arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)
-  arg_parser.add_argument("--model_file", dest="model_file", type=str, default="")
   arg_parser.add_argument("--total_timesteps", dest="total_timesteps", type=int, default=2e8)
   arg_parser.add_argument("--int_save_freq", dest="int_save_freq", type=int, default=0) # save intermediate model every n policy steps
 

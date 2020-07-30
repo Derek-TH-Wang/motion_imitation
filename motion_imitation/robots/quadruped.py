@@ -22,12 +22,10 @@ import collections
 import copy
 import math
 import re
+import typing
 import numpy as np
-from robots import minitaur_constants
-from robots import minitaur_motor
-from robots import robot_config
+from robots import robot_motor
 from robots import action_filter
-from robots import kinematics
 
 INIT_POSITION = [0, 0, .2]
 INIT_RACK_POSITION = [0, 0, 1]
@@ -76,7 +74,7 @@ def MapToMinusPiToPi(angles):
   return mapped_angles
 
 
-class Minitaur(object):
+class Quadruped(object):
   """The minitaur class that simulates a quadruped robot from Ghost Robotics."""
 
   def __init__(self,
@@ -86,8 +84,8 @@ class Minitaur(object):
                time_step=0.01,
                action_repeat=1,
                self_collision_enabled=False,
-               motor_control_mode=robot_config.MotorControlMode.POSITION,
-               motor_model_class=minitaur_motor.MotorModel,
+               motor_control_mode=robot_motor.POSITION,
+               motor_model_class=None,
                motor_kp=1.0,
                motor_kd=0.02,
                motor_torque_limits=None,
@@ -470,7 +468,7 @@ class Minitaur(object):
     for _ in range(100):
       self._StepInternal(
           [math.pi / 2] * self.num_motors,
-          motor_control_mode=robot_config.MotorControlMode.POSITION)
+          motor_control_mode=robot_motor.POSITION)
       # Don't continue to reset if a safety error has occurred.
       if not self._is_safe:
         return
@@ -482,7 +480,7 @@ class Minitaur(object):
     for _ in range(num_steps_to_reset):
       self._StepInternal(
           default_motor_angles,
-          motor_control_mode=robot_config.MotorControlMode.POSITION)
+          motor_control_mode=robot_motor.POSITION)
       # Don't continue to reset if a safety error has occurred.
       if not self._is_safe:
         return
@@ -507,6 +505,102 @@ class Minitaur(object):
 
   def GetURDFFile(self):
     return None
+
+  def _joint_angles_from_link_position(
+      self,
+      robot: typing.Any,
+      link_position: typing.Sequence[float],
+      link_id: int,
+      joint_ids: typing.Sequence[int],
+      base_translation: typing.Sequence[float] = (0, 0, 0),
+      base_rotation: typing.Sequence[float] = (0, 0, 0, 1)):
+    """Uses Inverse Kinematics to calculate joint angles.
+
+    Args:
+      robot: A robot instance.
+      link_position: The (x, y, z) of the link in the body frame. This local frame
+        is transformed relative to the COM frame using a given translation and
+        rotation.
+      link_id: The link id as returned from loadURDF.
+      joint_ids: The positional index of the joints. This can be different from
+        the joint unique ids.
+      base_translation: Additional base translation.
+      base_rotation: Additional base rotation.
+
+    Returns:
+      A list of joint angles.
+    """
+    # Projects to local frame.
+    base_position, base_orientation = robot.GetBasePosition(
+    ), robot.GetBaseOrientation()
+    base_position, base_orientation = robot.pybullet_client.multiplyTransforms(
+        base_position, base_orientation, base_translation, base_rotation)
+
+    # Projects to world space.
+    world_link_pos, _ = robot.pybullet_client.multiplyTransforms(
+        base_position, base_orientation, link_position, (0, 0, 0, 1))
+    ik_solver = 0
+    all_joint_angles = robot.pybullet_client.calculateInverseKinematics(
+        robot.quadruped, link_id, world_link_pos, solver=ik_solver)
+
+    # Extract the relevant joint angles.
+    joint_angles = [all_joint_angles[i] for i in joint_ids]
+    return joint_angles
+
+
+  def _link_position_in_base_frame(
+      self, 
+      robot: typing.Any,
+      link_id: int,
+  ):
+    """Computes the link's local position in the robot frame.
+
+    Args:
+      robot: A robot instance.
+      link_id: The link to calculate its relative position.
+
+    Returns:
+      The relative position of the link.
+    """
+    base_position, base_orientation = robot.GetBasePosition(
+    ), robot.GetBaseOrientation()
+    inverse_translation, inverse_rotation = robot.pybullet_client.invertTransform(
+        base_position, base_orientation)
+
+    link_state = robot.pybullet_client.getLinkState(robot.quadruped, link_id)
+    link_position = link_state[0]
+    link_local_position, _ = robot.pybullet_client.multiplyTransforms(
+        inverse_translation, inverse_rotation, link_position, (0, 0, 0, 1))
+
+    return np.array(link_local_position)
+
+
+  def _compute_jacobian(
+      self,
+      robot: typing.Any,
+      link_id: int,
+  ):
+    """Computes the Jacobian matrix for the given link.
+
+    Args:
+      robot: A robot instance.
+      link_id: The link id as returned from loadURDF.
+
+    Returns:
+      The 3 x N transposed Jacobian matrix. where N is the total DoFs of the
+      robot. For a quadruped, the first 6 columns of the matrix corresponds to
+      the CoM translation and rotation. The columns corresponds to a leg can be
+      extracted with indices [6 + leg_id * 3: 6 + leg_id * 3 + 3].
+    """
+
+    all_joint_angles = [state[0] for state in robot.joint_states]
+    zero_vec = [0] * len(all_joint_angles)
+    jv, _ = robot.pybullet_client.calculateJacobian(robot.quadruped, link_id,
+                                                    (0, 0, 0), all_joint_angles,
+                                                    zero_vec, zero_vec)
+    jacobian = np.array(jv)
+    assert jacobian.shape[0] == 3
+    return jacobian
 
   def ResetPose(self, add_constraint):
     """Reset the pose of the minitaur.
@@ -657,7 +751,7 @@ class Minitaur(object):
                          motors_per_leg)
     ]
 
-    joint_angles = kinematics.joint_angles_from_link_position(
+    joint_angles = self._joint_angles_from_link_position(
         robot=self,
         link_position=foot_local_position,
         link_id=toe_id,
@@ -678,7 +772,7 @@ class Minitaur(object):
     """Compute the Jacobian for a given leg."""
     # Does not work for Minitaur which has the four bar mechanism for now.
     assert len(self._foot_link_ids) == self.num_legs
-    return kinematics.compute_jacobian(
+    return self._compute_jacobian(
         robot=self,
         link_id=self._foot_link_ids[leg_id],
     )
@@ -729,7 +823,7 @@ class Minitaur(object):
     foot_positions = []
     for foot_id in self.GetFootLinkIDs():
       foot_positions.append(
-          kinematics.link_position_in_base_frame(
+          self._link_position_in_base_frame(
               robot=self,
               link_id=foot_id,
           ))
@@ -1424,5 +1518,5 @@ class Minitaur(object):
   @classmethod
   def GetConstants(cls):
     del cls
-    return minitaur_constants
+    return
 

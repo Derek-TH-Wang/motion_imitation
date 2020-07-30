@@ -1,4 +1,4 @@
-function trans2xr3(dogtrot)
+function dogtrot1 = trans2xr3(dogtrot)
 %% 
     coxa1 = 0.032875;
     femur1 = 0.25223;
@@ -89,15 +89,15 @@ function trans2xr3(dogtrot)
             end
         end
     end
-    plot3(pos(1:25,1),pos(1:25,2),pos(1:25,3),'-o')
+    plot3(pos(:,1),pos(:,2),pos(:,3),'-o')
     hold on
-    plot3(pos1(1:25,1),pos1(1:25,2),pos1(1:25,3),'-o')
+    plot3(pos1(:,1),pos1(:,2),pos1(:,3),'-o')
     axis equal
     
     
     for ii = 1:length(pos(:,1))
         fprintf("  [")
-        for jj = 1:19
+        for jj = 8:19
             if jj == 19
                 fprintf("%6.5f", dogtrot1(ii, jj));
             else

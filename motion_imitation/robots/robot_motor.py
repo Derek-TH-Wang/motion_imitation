@@ -13,12 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Motor model for laikago."""
+"""Motor model for robot."""
 
 import collections
 import numpy as np
 
-from robots import robot_config
 
 NUM_MOTORS = 12
 
@@ -31,7 +30,13 @@ VELOCITY_INDEX = 2
 VELOCITY_GAIN_INDEX = 3
 TORQUE_INDEX = 4
 
-class LaikagoMotorModel(object):
+# The supported motor control modes.
+POSITION = 1
+TORQUE = 2
+HYBRID = 3
+PWM = 4
+
+class RobotMotorModel(object):
   """A simple motor model for Laikago.
 
     When in POSITION mode, the torque is calculated according to the difference
@@ -49,7 +54,7 @@ class LaikagoMotorModel(object):
                kp=60,
                kd=1,
                torque_limits=None,
-               motor_control_mode=robot_config.MotorControlMode.POSITION):
+               motor_control_mode=POSITION):
     self._kp = kp
     self._kd = kd
     self._torque_limits = torque_limits
@@ -123,12 +128,12 @@ class LaikagoMotorModel(object):
     if not motor_control_mode:
       motor_control_mode = self._motor_control_mode
 
-    if motor_control_mode is robot_config.MotorControlMode.PWM:
+    if motor_control_mode is PWM:
       raise ValueError(
           "{} is not a supported motor control mode".format(motor_control_mode))
 
     # No processing for motor torques
-    if motor_control_mode is robot_config.MotorControlMode.TORQUE:
+    if motor_control_mode is TORQUE:
       assert len(motor_commands) == NUM_MOTORS
       motor_torques = self._strength_ratios * motor_commands
       return motor_torques, motor_torques
@@ -138,13 +143,13 @@ class LaikagoMotorModel(object):
     kp = None
     kd = None
     additional_torques = np.full(NUM_MOTORS, 0)
-    if motor_control_mode is robot_config.MotorControlMode.POSITION:
+    if motor_control_mode is POSITION:
       assert len(motor_commands) == NUM_MOTORS
       kp = self._kp
       kd = self._kd
       desired_motor_angles = motor_commands
       desired_motor_velocities = np.full(NUM_MOTORS, 0)
-    elif motor_control_mode is robot_config.MotorControlMode.HYBRID:
+    elif motor_control_mode is HYBRID:
       # The input should be a 60 dimension vector
       assert len(motor_commands) == MOTOR_COMMAND_DIMENSION * NUM_MOTORS
       kp = motor_commands[POSITION_GAIN_INDEX::MOTOR_COMMAND_DIMENSION]

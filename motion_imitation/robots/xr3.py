@@ -4,10 +4,8 @@ import re
 import numpy as np
 import pybullet as pyb
 
-from robots import xr3_pose_utils
-from robots import laikago_motor
-from robots import minitaur
-from robots import robot_config
+from robots import robot_motor
+from robots import quadruped
 from envs import locomotion_gym_config
 
 NUM_MOTORS = 12
@@ -52,11 +50,15 @@ HIP_D_GAIN = 1.0
 KNEE_P_GAIN = 80.0
 KNEE_D_GAIN = 1.0
 
+XR3_DEFAULT_ABDUCTION_ANGLE = 0
+XR3_DEFAULT_HIP_ANGLE = -0.78
+XR3_DEFAULT_KNEE_ANGLE = 1.74
+
 # Bases on the readings from Laikago's default pose.
 INIT_MOTOR_ANGLES = np.array([
-    xr3_pose_utils.XR3_DEFAULT_ABDUCTION_ANGLE,
-    xr3_pose_utils.XR3_DEFAULT_HIP_ANGLE,
-    xr3_pose_utils.XR3_DEFAULT_KNEE_ANGLE
+    XR3_DEFAULT_ABDUCTION_ANGLE,
+    XR3_DEFAULT_HIP_ANGLE,
+    XR3_DEFAULT_KNEE_ANGLE
 ] * NUM_LEGS)
 
 _CHASSIS_NAME_PATTERN = re.compile(r"abduct_")
@@ -74,7 +76,7 @@ _LINK_A_FIELD_NUMBER = 3
 UPPER_BOUND = 6.28318548203
 LOWER_BOUND = -6.28318548203
 
-class xr3(minitaur.Minitaur):
+class xr3(quadruped.Quadruped):
   """A simulation for the Laikago robot."""
   
   ACTION_CONFIG = [
@@ -129,7 +131,7 @@ class xr3(minitaur.Minitaur):
         motor_direction=JOINT_DIRECTIONS,
         motor_offset=JOINT_OFFSETS,
         motor_overheat_protection=False,
-        motor_model_class=laikago_motor.LaikagoMotorModel, # to be done
+        motor_model_class=robot_motor.RobotMotorModel,
         sensors=sensors,
         motor_kp=motor_kp,
         motor_kd=motor_kd,
@@ -164,13 +166,13 @@ class xr3(minitaur.Minitaur):
     for _ in range(500):
       self._StepInternal(
           INIT_MOTOR_ANGLES,
-          motor_control_mode=robot_config.MotorControlMode.POSITION)
+          motor_control_mode=robot_motor.POSITION)
     if default_motor_angles is not None:
       num_steps_to_reset = int(reset_time / self.time_step)
       for _ in range(num_steps_to_reset):
         self._StepInternal(
             default_motor_angles,
-            motor_control_mode=robot_config.MotorControlMode.POSITION)
+            motor_control_mode=robot_motor.POSITION)
 
   def GetHipPositionsInBaseFrame(self):
     return _DEFAULT_HIP_POSITIONS

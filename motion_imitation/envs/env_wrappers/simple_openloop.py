@@ -23,8 +23,8 @@ import attr
 from gym import spaces
 import numpy as np
 
-from robots import laikago_pose_utils
-from robots import xr3_pose_utils
+from robots import laikago
+from robots import xr3
 from robots import minitaur_pose_utils
 
 class MinitaurPoseOffsetGenerator(object):
@@ -93,28 +93,15 @@ class LaikagoPoseOffsetGenerator(object):
 
   def __init__(
       self,
-      init_abduction=laikago_pose_utils.LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
-      init_hip=laikago_pose_utils.LAIKAGO_DEFAULT_HIP_ANGLE,
-      init_knee=laikago_pose_utils.LAIKAGO_DEFAULT_KNEE_ANGLE,
+      init_abduction=laikago.LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
+      init_hip=laikago.LAIKAGO_DEFAULT_HIP_ANGLE,
+      init_knee=laikago.LAIKAGO_DEFAULT_KNEE_ANGLE,
       action_limit=0.5,
       ):
     """Initializes the controller."""
-    self._pose = np.array(
-        attr.astuple(
-            laikago_pose_utils.LaikagoPose(
-                abduction_angle_0=init_abduction,
-                hip_angle_0=init_hip,
-                knee_angle_0=init_knee,
-                abduction_angle_1=init_abduction,
-                hip_angle_1=init_hip,
-                knee_angle_1=init_knee,
-                abduction_angle_2=init_abduction,
-                hip_angle_2=init_hip,
-                knee_angle_2=init_knee,
-                abduction_angle_3=init_abduction,
-                hip_angle_3=init_hip,
-                knee_angle_3=init_knee)))
-    action_high = np.array([action_limit] * 12)
+    pose = [init_abduction, init_hip, init_knee]*xr3.NUM_LEGS
+    self._pose = np.array(pose)
+    action_high = np.array([action_limit] * xr3.NUM_MOTORS)
     self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
 
   def reset(self):
@@ -143,28 +130,15 @@ class XR3PoseOffsetGenerator(object):
 
   def __init__(
       self,
-      init_abduction=xr3_pose_utils.XR3_DEFAULT_ABDUCTION_ANGLE,
-      init_hip=xr3_pose_utils.XR3_DEFAULT_HIP_ANGLE,
-      init_knee=xr3_pose_utils.XR3_DEFAULT_KNEE_ANGLE,
+      init_abduction=xr3.XR3_DEFAULT_ABDUCTION_ANGLE,
+      init_hip=xr3.XR3_DEFAULT_HIP_ANGLE,
+      init_knee=xr3.XR3_DEFAULT_KNEE_ANGLE,
       action_limit=0.5,
       ):
     """Initializes the controller."""
-    self._pose = np.array(
-        attr.astuple(
-            xr3_pose_utils.XR3Pose(
-                abduction_angle_0=init_abduction,
-                hip_angle_0=init_hip,
-                knee_angle_0=init_knee,
-                abduction_angle_1=init_abduction,
-                hip_angle_1=init_hip,
-                knee_angle_1=init_knee,
-                abduction_angle_2=init_abduction,
-                hip_angle_2=init_hip,
-                knee_angle_2=init_knee,
-                abduction_angle_3=init_abduction,
-                hip_angle_3=init_hip,
-                knee_angle_3=init_knee)))
-    action_high = np.array([action_limit] * 12)
+    pose = [init_abduction, init_hip, init_knee]*xr3.NUM_LEGS
+    self._pose = np.array(pose)
+    action_high = np.array([action_limit] * xr3.NUM_MOTORS)
     self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
 
   def reset(self):
