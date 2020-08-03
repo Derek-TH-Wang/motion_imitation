@@ -19,7 +19,7 @@ from envs.env_wrappers import imitation_wrapper_env
 from envs.env_wrappers import observation_dictionary_to_array_wrapper
 from envs.env_wrappers import trajectory_generator_wrapper_env
 from envs.env_wrappers import simple_openloop
-from envs.env_wrappers import imitation_task
+from task import imitation_task
 from envs.sensors import environment_sensors
 from envs.sensors import sensor_wrappers
 from envs.sensors import robot_sensors
